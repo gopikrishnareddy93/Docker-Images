@@ -1,0 +1,48 @@
+version: '3'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.2.4
+    ports:
+      - '9200:9200'
+    environment:
+      ES_JAVA_OPTS: '-Xms512m -Xmx512m'
+      discovery.type: 'single-node'     
+      bootstrap.memory_lock: 'true'
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == Kube-Master-Ubuntu
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash-oss:6.2.4
+    volumes:
+      - /home/bjones/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    depends_on:
+      - elasticsearch
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == Kube-Master-Ubuntu
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana-oss:6.2.4
+    ports:
+      - '5601:5601'
+    depends_on:
+      - elasticsearch
+    environment:
+      ELASTICSEARCH_URL: 'http://elasticsearch:9200'
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == Kube-Master-Ubuntu
+
+volumes:
+  esdata:
+    driver: local
